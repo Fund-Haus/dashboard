@@ -333,6 +333,7 @@ function startSupabase(){
   },function(){Object.keys(S).forEach(function(k){loaded[k]=true;});note="The app could not load. Check your internet connection and reload the page.";render();});
 }
 function start(){if(CFG.url&&CFG.key)startSupabase();else startClaude();}
+window.FH={save:function(c,i,r){return save(c,i,r);},all:function(){return data;},ready:function(){return !!sb&&!needLogin&&!!loaded.tasks;},who:function(){return userEmail;}};
 function save(coll,id,rec){
   rec.updatedBy=who();rec.updatedAt=new Date().toISOString();if(!rec.createdAt)rec.createdAt=rec.updatedAt;
   if(sb){
