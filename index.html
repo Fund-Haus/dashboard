@@ -364,21 +364,25 @@ function loginView(){
   return '<div class="panel login"><h1>FundHaus Dashboard</h1><div class="sub">Sign in to continue.</div>'+
     '<label for="lem">Email<input id="lem" type="email" autocomplete="username" value="'+esc(loginEmail)+'"></label>'+
     '<label for="lpw">Password<input id="lpw" type="password" autocomplete="current-password"></label>'+
-    '<div class="chips"><button class="btn" data-login="1">Sign in</button><button class="btn ghost" data-link="1">Email me a sign-in link</button></div>'+
+    '<div class="chips"><button class="btn" data-login="1">Sign in</button></div>'+
     '<div class="err" role="alert">'+esc(loginMsg)+"</div></div>";
 }
-function doLogin(link){
+function doLogin(){
   loginEmail=document.getElementById("lem").value.trim();
   var pw=document.getElementById("lpw").value;
   if(!loginEmail){loginMsg="Enter your email address.";render();return;}
-  if(link){
-    sb.auth.signInWithOtp({email:loginEmail,options:{shouldCreateUser:true,emailRedirectTo:location.origin+location.pathname}}).then(function(r){
-      loginMsg=r.error?"The link could not be sent. Check the email address, or try again in a few minutes.":"Link sent. Open it on this device to sign in.";render();});
-    return;
-  }
-  if(!pw){loginMsg="Enter your password, or use the sign-in link.";render();return;}
-  sb.auth.signInWithPassword({email:loginEmail,password:pw}).then(function(r){if(r.error){loginMsg="That email and password didn't work.";render();}});
+  if(!pw){loginMsg="Enter your password.";render();return;}
+  loginMsg="Signing in...";render();
+  sb.auth.signInWithPassword({email:loginEmail,password:pw}).then(function(r){if(r.error){loginMsg="That email and password didn't work.";render();}else{loginMsg="";}});
 }
+function changePw(){
+  var a=document.getElementById("npw1").value,b2=document.getElementById("npw2").value;
+  if(a.length<8){pwMsg="Use at least 8 characters.";render();return;}
+  if(a!==b2){pwMsg="The two passwords don't match.";render();return;}
+  pwMsg="Saving...";render();
+  sb.auth.updateUser({password:a}).then(function(r){pwMsg=r.error?"That didn't save. Try again.":"Password changed.";if(!r.error)pwOpen=false;render();});
+}
+var pwOpen=false,pwMsg="";
 
 /* ---------- backup ---------- */
 function backupText(){var o={app:"fundhaus-dashboard",at:new Date().toISOString(),data:{}};Object.keys(S).forEach(function(k){o.data[k]=data[k];});return JSON.stringify(o);}
@@ -479,6 +483,9 @@ function overview(){
   h+='<div class="strip" style="margin-top:18px;align-items:center"><span><b>Backup</b></span><button class="chip" data-backup="1">'+(db?"Copy a backup":"Download a backup")+"</button>"+
     '<label for="restoreFile" style="flex-direction:row;align-items:center;gap:8px;font-weight:500">Load a backup file<input type="file" id="restoreFile" accept=".json,application/json" style="width:auto"></label>'+
     (bmsg?"<span>"+esc(bmsg)+"</span>":"")+"</div>";
+  if(sb)h+='<div class="strip" style="margin-top:10px;align-items:center"><span><b>Your password</b></span>'+(pwOpen?
+    '<input id="npw1" type="password" autocomplete="new-password" placeholder="New password" style="width:auto"><input id="npw2" type="password" autocomplete="new-password" placeholder="Type it again" style="width:auto"><button class="chip" data-pwsave="1">Save password</button>':
+    '<button class="chip" data-pwopen="1">Change password</button>')+(pwMsg?"<span>"+esc(pwMsg)+"</span>":"")+"</div>";
   return h;
 }
 function tile(k,v,d){return '<div class="tile"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="d">'+d+"</div></div>";}
@@ -968,7 +975,8 @@ document.getElementById("main").addEventListener("click",function(e){
   if(t.dataset.done){hideDone=!hideDone;render();return;}
   if(t.dataset.stage||t.dataset.ch||t.id==="acct"||t.type==="file")return;
   if(t.dataset.login){doLogin(false);return;}
-  if(t.dataset.link){doLogin(true);return;}
+  if(t.dataset.pwopen){pwOpen=true;pwMsg="";render();return;}
+  if(t.dataset.pwsave){changePw();return;}
   if(t.dataset.backup){
     var txt=backupText();
     if(db){try{navigator.clipboard.writeText(txt).then(function(){t.textContent="Backup copied";},function(){t.textContent="Copy was blocked";});}catch(x){t.textContent="Copy was blocked";}}
