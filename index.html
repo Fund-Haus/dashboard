@@ -374,14 +374,21 @@ function doLogin(){
   if(!loginEmail){loginMsg="Enter your email address.";render();return;}
   if(!pw){loginMsg="Enter your password.";render();return;}
   loginMsg="Signing in...";render();
-  sb.auth.signInWithPassword({email:loginEmail,password:pw}).then(function(r){if(r.error){loginMsg="That email and password didn't work.";render();}else{loginMsg="";}});
+  sb.auth.signInWithPassword({email:loginEmail,password:pw}).then(function(r){if(r.error){var lm=String(r.error.message||"").toLowerCase();loginMsg=lm.indexOf("confirm")>-1?"This sign-in has not been confirmed yet. Ask Savannah to recreate it.":lm.indexOf("invalid")>-1?"That email and password didn't work.":"Sign-in failed ("+(r.error.message||"no reason given")+").";render();}else{loginMsg="";}});
+}
+function pwWhy(e){
+  var m=String(e&&(e.message||e.code)||"").toLowerCase();
+  if(m.indexOf("different")>-1||m.indexOf("same")>-1)return "That is the same as your current password. Choose a different one.";
+  if(m.indexOf("weak")>-1||m.indexOf("at least")>-1||m.indexOf("characters")>-1)return "That password is too short or too simple. Try a longer one.";
+  if(m.indexOf("reauth")>-1||m.indexOf("session")>-1||m.indexOf("jwt")>-1)return "Your sign-in has expired. Sign out, sign in again, then change it.";
+  return "That didn't save ("+(e&&e.message||"unknown reason")+").";
 }
 function changePw(){
   var a=document.getElementById("npw1").value,b2=document.getElementById("npw2").value;
   if(a.length<8){pwMsg="Use at least 8 characters.";render();return;}
   if(a!==b2){pwMsg="The two passwords don't match.";render();return;}
   pwMsg="Saving...";render();
-  sb.auth.updateUser({password:a}).then(function(r){pwMsg=r.error?"That didn't save. Try again.":"Password changed.";if(!r.error)pwOpen=false;render();});
+  sb.auth.updateUser({password:a}).then(function(r){pwMsg=r.error?pwWhy(r.error):"Password changed.";if(!r.error)pwOpen=false;render();});
 }
 var pwOpen=false,pwMsg="";
 
